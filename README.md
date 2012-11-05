@@ -37,3 +37,7 @@ Tracking a group of tweens
 Finding and removing
 
     t.Remove(t.Find(myLabel));
+
+## Scene.cs
+
+More or less classic Scene Manager (for UI screens and overall game flow) with built-in support for Tweener. Still work in progress...

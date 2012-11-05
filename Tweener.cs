@@ -40,6 +40,7 @@ using System.Collections.Generic;
 // This class tweens parameters for a single Futile Node
 public class Tweener {
 	public FNode node;
+	public string id;
 	
 	// Interpolator function type and a few useful interpolators
 	public delegate float Interpolator(float t);
@@ -69,7 +70,7 @@ public class Tweener {
 		int n = values.Length;
 		for (int i = 0; i < n; ++i) {
 			values[i].style = Style.INACTIVE;
-			values[i].fn = IntLinear;
+			values[i].fn = IntSqrt;
 		}
 	}
 	
@@ -79,6 +80,15 @@ public class Tweener {
 		values[i].t = t;
 		values[i].duration = duration;
 		values[i].style = style;
+		return this;
+	}
+	
+	public Tweener SetId(string id) { this.id = id; return this; }
+	
+	public Tweener SetHandler(System.Action<FButton> a) {
+		FButton b = node as FButton;
+		if (b != null)
+			b.SignalRelease += a;
 		return this;
 	}
 	
@@ -108,12 +118,12 @@ public class Tweener {
 	public Tweener fnRot(Interpolator fn) 	{ values[4].fn = fn; return this; }
 	public Tweener fnAlpha(Interpolator fn) { values[5].fn = fn; return this; }
 	
-	public Tweener offX(float t)		{ values[0].t = t; return this; }
-	public Tweener offY(float t)		{ values[1].t = t; return this; }
-	public Tweener offSx(float t)		{ values[2].t = t; return this; }
-	public Tweener offSy(float t)		{ values[3].t = t; return this; }
-	public Tweener offRot(float t)		{ values[4].t = t; return this; }
-	public Tweener offAlpha(float t)	{ values[5].t = t; return this; }
+	public Tweener offX(float t)		{ values[0].t = t/values[0].duration; return this; }
+	public Tweener offY(float t)		{ values[1].t = t/values[1].duration; return this; }
+	public Tweener offSx(float t)		{ values[2].t = t/values[2].duration; return this; }
+	public Tweener offSy(float t)		{ values[3].t = t/values[3].duration; return this; }
+	public Tweener offRot(float t)		{ values[4].t = t/values[4].duration; return this; }
+	public Tweener offAlpha(float t)	{ values[5].t = t/values[5].duration; return this; }
 	
 	public Tweener srcX(float v)		{ values[0].delta += values[0].src - v; values[0].src = v; return this; }
 	public Tweener srcY(float v)		{ values[1].delta += values[1].src - v; values[1].src = v; return this; }
@@ -140,7 +150,7 @@ public class Tweener {
 	public Tweener off(float v) {
 		int n = values.Length;
 		for (int i = 0; i < n; ++i)
-			values[i].t = v;
+			values[i].t = v/values[i].duration;
 		return this;
 	}
 	
@@ -204,7 +214,8 @@ public class TweenerManager {
 	public Tweener Add(Tweener tw) {
 		if (tw != null && !mTweeners.Exists(t => t == tw)) {
 			mTweeners.Add(tw);
-			tw.Update(0);
+			if (!tw.Update(0))
+				finished = false;
 		}
 		return tw;
 	}
@@ -217,6 +228,14 @@ public class TweenerManager {
 	public Tweener Find(FNode node) {
 		foreach (Tweener tw in mTweeners) {
 			if (tw.node == node)
+				return tw;
+		}
+		return null;
+	}
+
+	public Tweener Find(string id) {
+		foreach (Tweener tw in mTweeners) {
+			if (tw.id == id)
 				return tw;
 		}
 		return null;
