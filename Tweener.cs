@@ -225,6 +225,10 @@ public class TweenerManager {
 			mTweeners.Remove(tw);
 	}
 
+	public void Clear() {
+		mTweeners.Clear();
+	}
+
 	public Tweener Find(FNode node) {
 		foreach (Tweener tw in mTweeners) {
 			if (tw.node == node)
