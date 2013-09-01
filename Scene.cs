@@ -75,6 +75,9 @@ public class Scene: FContainer
 		return t;
 	}
 
+	public Tweener NewSprite(string elementName, float x, float y) {
+		return NewTweener(new FSprite(elementName), x, y);
+	}
 	public Tweener NewLabel(float x, float y, string fontName, string text) {
 		return NewTweener(new FLabel(fontName, text), x, y);
 	}
