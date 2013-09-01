@@ -6,7 +6,8 @@ public class Scene: FContainer
 {
 	protected TweenerManager mTw = new TweenerManager();
 	protected float mTime = 0;
-	protected bool mActive = true;
+	protected bool mActive = false;
+	protected bool mActiveTransition = false;
 
 	public SceneManager manager = null;
 	
@@ -20,26 +21,43 @@ public class Scene: FContainer
 			}
 		}
 	}
-	
+	// Called when the screen is created and added to the stack
+	// The place to set up screen state but NOT visual controls
 	public virtual void Init () {
-		Futile.stage.AddChild(this);
 	}
+	// Called when the screen is removed from the stack
 	public virtual void End () {
-		ClearChildren(this);
-		RemoveFromContainer();
 		manager = null;
 	}
+	
+	// Called when the screen becomes the topmost, visible screen.
 	public virtual void Activate () {
 		mActive = true;
+		mActiveTransition = true; // We add a transition for testing
+		mTw.Add(new Tweener(this).X(0, 0.5f).srcX(-Futile.screen.width));
+		OnActivate();
 	}
+	// Called when the screen is no longer the topmost, visible screen.
 	public virtual void Deactivate () {
 		mActive = false;
+		mActiveTransition = true; // We add a transition for testing
+		mTw.Add(new Tweener(this).X(-Futile.screen.width, 0.5f));
+	}
+
+	// The place to create controls and transitions for them
+	public virtual void OnActivate () {
+		Futile.stage.AddChild(this);
+	}
+	// The place to destroy controls because the transition out is finished
+	public virtual void OnDeactivate () {
+		ClearChildren(this);
+		RemoveFromContainer();
 	}
 	public virtual bool FinishedActivation() {
-		return mTw.finished;
+		return !mActiveTransition || mTw.finished;
 	}
-	public bool IsActive() {
-		return mActive;
+	public bool isActive {
+		get { return mActive; }
 	}
 	public virtual void Update (float dt) {
 		mTime += dt;
@@ -60,8 +78,8 @@ public class Scene: FContainer
 	public Tweener NewLabel(float x, float y, string fontName, string text) {
 		return NewTweener(new FLabel(fontName, text), x, y);
 	}
-	public Tweener NewSlice(float x, float y, float width, float height, float inset, string elementName) {
-		return NewTweener(new FSliceSprite(width, height, inset, inset, inset, inset, elementName), x, y);
+	public Tweener NewSlice(string elementName, float x, float y, float width, float height, float inset) {
+		return NewTweener(new FSliceSprite(elementName, width, height, inset, inset, inset, inset), x, y);
 	}
 	public Tweener NewButton(float x, float y, string fontName, string text, string bgName) {
 		var n = new FButton(bgName);
@@ -97,8 +115,10 @@ public class SceneManager
 			mStack.RemoveAt(mStack.Count-1);
 			if (!oldScene.FinishedActivation())
 				mPopped.Add(oldScene);
-			else
+			else {
+				oldScene.OnDeactivate();
 				oldScene.End();
+			}
 		}
 	}
 	
@@ -131,17 +151,22 @@ public class SceneManager
 	}
 	
 	public void Update(float dt) {
+		// Run the screens in the stack
 		for (int i = 0; i < mStack.Count; ++i) {
-			mStack[i].Update(dt);
+			Scene scene = mStack[i];
+			scene.Update(dt);
+			if (!scene.isActive && scene.FinishedActivation())
+				scene.OnDeactivate();
 		}
+		// Keep running the screens that have been removed and are transitioning out
 		for (int i = mPopped.Count-1; i >= 0; --i) {
-			Scene s = mPopped[i];
-			s.Update(dt);
-			if (s.FinishedActivation()) {
+			Scene scene = mPopped[i];
+			scene.Update(dt);
+			if (scene.FinishedActivation()) {
+				scene.OnDeactivate();
 				mPopped.RemoveAt(i);
-				s.End();
+				scene.End();
 			}
 		}
-		
 	}
 }

@@ -85,7 +85,7 @@ public class Tweener {
 	
 	public Tweener SetId(string id) { this.id = id; return this; }
 	
-	public Tweener SetHandler(System.Action<FButton> a) {
+	public Tweener SetHandler(FButton.ButtonSignalDelegate a) {
 		FButton b = node as FButton;
 		if (b != null)
 			b.SignalRelease += a;
@@ -164,6 +164,15 @@ public class Tweener {
 		t = values[i].fn(t);
 		return values[i].src + t*values[i].delta;
 	}
+
+	public void Refresh() {
+		if (values[0].style != Style.INACTIVE) node.x = Calc(0);
+		if (values[1].style != Style.INACTIVE) node.y = Calc(1);
+		if (values[2].style != Style.INACTIVE) node.scaleX = Calc(2);
+		if (values[3].style != Style.INACTIVE) node.scaleY = Calc(3);
+		if (values[4].style != Style.INACTIVE) node.rotation = Calc(4);
+		if (values[5].style != Style.INACTIVE) node.alpha = Calc(5);
+	}
 	
 	public bool Update(float dt) {
 		bool finished = true;
@@ -184,15 +193,21 @@ public class Tweener {
 				values[i].t = t;
 			}
 		}
-		if (values[0].style != Style.INACTIVE) node.x = Calc(0);
-		if (values[1].style != Style.INACTIVE) node.y = Calc(1);
-		if (values[2].style != Style.INACTIVE) node.scaleX = Calc(2);
-		if (values[3].style != Style.INACTIVE) node.scaleY = Calc(3);
-		if (values[4].style != Style.INACTIVE) node.rotation = Calc(4);
-		if (values[5].style != Style.INACTIVE) node.alpha = Calc(5);
-		
+		Refresh();
 		return finished;
 	}
+		
+	public void ForceEnd() {
+		int n = values.Length;
+		for (int i = 0; i < n; ++i) {
+			if (values[i].style != Style.INACTIVE) {
+				values[i].t = 1.0f;
+			}
+		}
+		Refresh();
+	}
+		
+
 }
 
 // This class tracks a bunch of Tweeners
@@ -229,6 +244,13 @@ public class TweenerManager {
 		mTweeners.Clear();
 	}
 
+	public void ForceEnd() {
+		foreach (Tweener tw in mTweeners) {
+			tw.ForceEnd();
+		}
+		mTweeners.Clear();
+	}
+
 	public Tweener Find(FNode node) {
 		foreach (Tweener tw in mTweeners) {
 			if (tw.node == node)
@@ -244,5 +266,4 @@ public class TweenerManager {
 		}
 		return null;
 	}
-
 }
